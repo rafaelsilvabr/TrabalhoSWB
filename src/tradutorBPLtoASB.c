@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define MAX 255
-int aux=1, aux1=1;
 
 void traduzirfuncao();
 void attr();
@@ -46,9 +45,9 @@ void traduzirfuncao(char *word){
 
     //Parametros da Função
     var parametros[4]={
-        [1].registrador="%rdi",
-        [2].registrador="%rsi",
-        [3].registrador="%rdx",
+        [1].registrador="%edi",
+        [2].registrador="%esi",
+        [3].registrador="%edx",
         [1].tamanho=8,
         [2].tamanho=8,
         [3].tamanho=8,
@@ -135,7 +134,7 @@ void traduzirfuncao(char *word){
         //   printf("tamanho da pilha= %d\n", tamanho_pilha);
            //  
             tamanho_pilha+=variaveis[i].tamanho; 
-            /*variaveis[i].tamanho=tamanho_pilha;
+            variaveis[i].tamanho=tamanho_pilha;/*
            strcat(buffer,"movq ");
             strcat(buffer,variaveis[i].registrador);
             strcat(buffer,", -");
@@ -210,146 +209,49 @@ void attr(char * line,  var * variaveis, var * parametros){
         }
     }
    
-    if(r == 6){
+    
+    if(r==6){ 
 
+        //printf("vi%d = %ci%d %c %ci%d\n", num1, l1, num2, op, l2, num3); 
+
+        //Primeira parte da expressao em %eax
         if(l1 == 'v'){
-
-            //printf("#vi%d = vi%d %c %ci%d\n", num1, num2, op, l2, num3); 
-
-            if(l2 == 'c')
             printf("movl -%d(%%rbp), %%eax\n", variaveis[num2].tamanho);
+        }
+        else if(l1 == 'c'){
+            printf("movl $%d, %%eax\n", num2);  
+        }
+        else if(l1 == 'p'){
+            printf("movl %s, %%eax\n", parametros[num2].registrador);
+        }
 
-            if(l2 == 'v'){ 
-            printf("movl -%d(%%rbp), %%eax\n", variaveis[num3].tamanho);
-                if(op == '+')
-                printf("addl -%d(%%rbp), %%eax\n", variaveis[num2].tamanho) ;
-                if(op == '-')
-                printf("subl -%d(%%rbp), %%eax\n", variaveis[num2].tamanho);
-                if(op == '*')
-                printf("imull -%d(%%rbp), %%eax\n", variaveis[num2].tamanho);
-            }
+        //Segunda parte da expressao em %ecx
+        if(l2 == 'v'){
+            printf("movl -%d(%%rbp), %%ecx\n", variaveis[num3].tamanho);
+        }
+        else if(l2 == 'c'){
+            printf("movl $%d, %%ecx\n", num3);  
+        }
+        else if(l2 == 'p'){ //pi alw
+            printf("movl %s, %%ecx\n", parametros[num3].registrador);
+        }
 
-            if(l2 == 'p') {
+          if(op == '+')
+          printf("addl %%ecx, %%eax\n");
+          if(op == '-')
+          printf("subl %%ecx, %%eax\n");
+          if(op == '*')
+          printf("imull %%ecx, %%eax\n");
+          if(op == '/'){      
+            printf("cltd\n");
+            printf("idivl %%ecx\n");
+          } 
           
-            if(aux==1){  printf("movq %s, -%d(%%rbp)\n\n", parametros[num2].registrador, parametros[num2].tamanho);   
-            aux+=2;
-            }
-
-            printf("movq -%d(%%rbp), %%rax\n", parametros[num3].tamanho);
-            printf("movl %%eax, %%edx\n"); 
-            printf("movl -%d(%%rbp), %%eax\n", variaveis[num2].tamanho); 
-
-                if(op == '+')
-                printf("addl %%edx, %%eax\n");
-                if(op == '-')
-                printf("subl %%edx, %%eax\n");
-                if(op == '*')
-                printf("imull %%edx, %%eax\n");
-                if(op == '/') 
-                printf("FAZER\n");
-                printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
-
-                return;
-            }
-                if(op == '+' && l2 == 'c') 
-                printf("addl $%d, %%eax\n", num3);
-                if(op == '-'&& l2 == 'c')
-                printf("subl $%d, %%eax\n", num3);
-                if(op == '*'&& l2 == 'c')
-                printf("imull $%d, %%eax, %%eax\n", num3);
-                if(op == '/') 
-                printf("FAZER\n");
-            printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
-            return;
-        }
-
-        if(l1 == 'c'){
-          //  printf("#vi%d = vi%d %c %ci%d\n", num1, num2, op, l2, num3); 
-
-            if(l2 == 'c'){
-                int tmp=0;
-                if(op=='+') tmp=num2+num3;
-                else if(op=='-') tmp=num2-num3;
-                else if(op=='*') tmp=num2*num3;
-
-            printf("movl $%d, -%d(%%rbp)\n\n", tmp ,variaveis[num1].tamanho);  
-            return;
-            }
-
-            if(l2 == 'v') 
-            printf("movl -%d(%%rbp), %%eax\n", variaveis[num3].tamanho);
-
-
-           if(l2 == 'p') {
-               if(aux==1){  printf("movq %s, -%d(%%rbp)\n\n", parametros[num3].registrador, parametros[num3].tamanho);   
-            aux+=2;}
-                printf("movq -%d(%%rbp), %%rax\n", parametros[num3].tamanho);
-
-           // printf("movl $%d, %%eax\n", num2);  
-                if(op == '+')
-                printf("addl $%d, %%eax\n", num2);
-                if(op == '-')
-                printf("subl $%d, %%eax\n", num2);
-                if(op == '*')
-                printf("imull $%d, %%eax\n", num2);
-                if(op == '/') 
-                printf("FAZER\n");
-                printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
-
-                return;
-            }
-                if(op == '+')
-                printf("addl $%d, %%eax\n", num2);  
-                if(op == '-')
-                printf("subl $%d, %%eax\n", num2);  
-                if(op == '*')
-                printf("imull $%d, %%eax\n", num2);  
-                if(op == '/') 
-                printf("FAZER\n");
-            printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
-            return;
-        }
-
-        if(l1 == 'p'){
-           
-
-          if(aux==1){  printf("movq %s, -%d(%%rbp)\n\n", parametros[num2].registrador, parametros[num2].tamanho);   
-            aux+=2;
-
-          }
-           //printf("#vi%d = vi%d %c %ci%d\n", num1, num2, op, l2, num3); 
-
-            if(l2 == 'c'){
-            printf("movl $%d, %%eax\n", num3);             }
-
-            if(l2 == 'v') 
-            printf("movl -%d(%%rbp), %%eax\n", variaveis[num3].tamanho);
-
-            if(l2 == 'p'){ 
-                printf("movq %s, -%d(%%rbp)\n", parametros[num3].registrador, parametros[num3].tamanho);   
-
-                if(op != '*')
-            printf("movl -%d(%%rbp), %%eax\n", parametros[num3].tamanho);
-
-            }
-                if(op == '+')
-                printf("addl -%d(%%rbp), %%eax\n", parametros[num2].tamanho);
-                if(op == '-')
-                printf("subl -%d(%%rbp), %%eax\n", parametros[num2].tamanho);
-                if(op == '*' && l2 != 'v'){
-                printf("imulq -%d(%%rbp), %%rax\n", parametros[num2].tamanho);
-                }else if (op == '*' && l2 == 'v'){
-                printf("movslq %%eax, %%rax\n");
-                printf("imulq -%d(%%rbp), %%rax\n", parametros[num2].tamanho);
-
-                }
-                if(op == '/') 
-                printf("FAZER\n");
-            printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
-            return;
-        }
-
+        //varint = exp
+        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
+        return;
     }
+    
         
 }
 
