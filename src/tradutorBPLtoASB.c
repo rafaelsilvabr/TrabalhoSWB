@@ -35,7 +35,7 @@ int main(){
 void traduzirfuncao(char *word){
 
     char buffer[MAX];
-//Inicializa a pilha da função
+    //Inicializa a pilha da função
 
     //Nome da Função
     word = strtok(NULL," "); //Pula p/próxima palavra
@@ -63,14 +63,7 @@ void traduzirfuncao(char *word){
         word = strtok(NULL," ");
     }
 
-        //Debug Parametros
-        /*
-        printf("%c / %s / %s\n",parametros[1].tipo, parametros[1].registrador, parametros[1].memoria);
-        printf("%c / %s / %s\n",parametros[2].tipo, parametros[2].registrador, parametros[2].memoria);
-        printf("%c / %s / %s\n",parametros[3].tipo, parametros[3].registrador, parametros[3].memoria);
-        */
-
-//Declara as variaveis locais
+    //Declara as variaveis locais
     char line[MAX];
     
     var variaveis[6] = {
@@ -110,7 +103,6 @@ void traduzirfuncao(char *word){
         }
     }
    
-        
     //Aumenta Pilha da Função
     int tamanho_pilha = 0; char tmp[10];
     strcpy(buffer,"\n");
@@ -119,7 +111,7 @@ void traduzirfuncao(char *word){
           // 
          // parametros[i].tamanho+=8; 
           tamanho_pilha+=parametros[i].tamanho;
-           parametros[i].tamanho=tamanho_pilha;
+        parametros[i].tamanho=tamanho_pilha;
             /*
             strcat(buffer,"movq ");
             strcat(buffer,parametros[i].registrador);
@@ -143,8 +135,16 @@ void traduzirfuncao(char *word){
             strcat(buffer,"(%rsp)\n");*/
         }
     }
-/*
+         //Debug Parametros
+        /*
+        printf("%c / %s / %d\n",parametros[1].tipo, parametros[1].registrador, parametros[1].tamanho);
+        printf("%c / %s / %d\n",parametros[2].tipo, parametros[2].registrador, parametros[2].tamanho);
+        printf("%c / %s / %d\n",parametros[3].tipo, parametros[3].registrador, parametros[3].tamanho);
+        */
+
+        
          //Debug Variaveis Locais
+        /*
         printf("%c / %s / %d\n",variaveis[1].tipo, variaveis[1].registrador, variaveis[1].tamanho);
         printf("%c / %s / %d\n",variaveis[2].tipo, variaveis[2].registrador, variaveis[2].tamanho);
         printf("%c / %s / %d\n",variaveis[3].tipo, variaveis[3].registrador, variaveis[3].tamanho);
@@ -155,41 +155,62 @@ void traduzirfuncao(char *word){
     printf("subq $%d, %%rsp\n", tamanho_pilha);
     printf("%s", buffer);
 
+/*---------------------------------------------------------*/
+
 //Corpo da Função
 
 //Atribuição
 while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
   
-    int r, l1;
-    char num1;
-    r = sscanf(line, "if %ci%d", &num1, &l1); 
+    int r, num;
+    char l;
+
+    r = sscanf(line, "if %ci%d", &l, &num); 
 
     if(r==2){
+      //  printf("#if %ci%d\n", l, num);
         while(scanf("%[^\n]\n", line), strcmp(line,"endif")!=0){
+           int tmp;
+           tmp = ( 1=='p') ? parametros[num].tamanho : variaveis[num].tamanho;
+
+            printf("movl -%d(%%rbp), %%ecx\n", tmp);
+            printf("cmpl $0, %%ecx\n");
+            printf("je d_if:\n\n");
+
+            attr(line, variaveis, parametros);
+            //to do : return
+
+            printf("d_if:\n");
 
         }
     }
     else{
           attr(line, variaveis, parametros);
     }
-
-//Finaliza Função
+  
 }
+
+return;
+//Finaliza Função
 }
 
 void attr(char * line,  var * variaveis, var * parametros){
 
-    int r, num1, num2, num3;
+    int r, s, num1, num2, num3;
     char op, l1, l2;
-    
    
-        r = sscanf(line, "vi%d = %ci%d %c %ci%d", &num1, &l1, &num2, &op, &l2, &num3); 
+    r = sscanf(line, "vi%d = %ci%d %c %ci%d", &num1, &l1, &num2, &op, &l2, &num3); 
            // printf("vi%d = %ci%d %c %ci%d\n", num1, l1, num2, op, l2, num3); 
 
+    int n1, f, n2, n3;
+    char l3, l4;
 
+    s = sscanf(line, "vi%d = call f%d %ci%d %ca%d", &n1, &f, &l3, &n2, &l4, &n3);
+
+    //<attr> -> <varint> = <varint>
     if(r==3){
         if(l1 == 'c'){
-         //   printf("#vi%d = ci%d\n", num1, num2);
+        //    printf("#vi%d = ci%d\n", num1, num2);
             printf("movl $%d, -%d(%%rbp)\n\n", num2, variaveis[num1].tamanho);
             return;
         }
@@ -200,7 +221,7 @@ void attr(char * line,  var * variaveis, var * parametros){
             return;
         }
         if(l1 == 'p'){
-         //   printf("#vi%d = pi%d\n", num1, num2);
+          //  printf("#vi%d = pi%d\n", num1, num2);
             printf("movq %s, -%d(%%rbp)\n", parametros[num2].registrador, parametros[num2].tamanho);   
             printf("movl -%d(%%rbp), %%eax\n", parametros[num2].tamanho);
             printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho);  
@@ -209,7 +230,7 @@ void attr(char * line,  var * variaveis, var * parametros){
         }
     }
    
-    
+    //<attr> -> <varint> = <oper>
     if(r==6){ 
 
         //printf("vi%d = %ci%d %c %ci%d\n", num1, l1, num2, op, l2, num3); 
@@ -251,8 +272,26 @@ void attr(char * line,  var * variaveis, var * parametros){
         printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
         return;
     }
-    
-        
+
+    //<attr> -> <varint> = <call>
+    if(s==6){
+
+        int tmp, tmp1;
+
+        if(l3 == 'c')
+            printf("movl $%d, %%edi\n", n2);
+
+        else if (l3 == 'v' || l3 == 'p'){
+            tmp = ( 13 =='p') ? parametros[n2].tamanho : variaveis[n2].tamanho;
+            printf("movl -%d(%%rbp), %%edi\n", tmp);
+        }
+            tmp1 = ( 14 =='p') ? parametros[n3].tamanho : variaveis[n3].tamanho;
+       
+        printf("movq -%d(%%rbp), %%rsi\n", tmp1);
+        printf("call f%d\n", f);
+        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[n1].tamanho);  
+
+        return;
+    }
+
 }
-
-
