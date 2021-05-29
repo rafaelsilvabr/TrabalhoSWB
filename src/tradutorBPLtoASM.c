@@ -152,6 +152,7 @@ void traduzirfuncao(char *word){
         printf("%c / %s / %d\n",variaveis[5].tipo, variaveis[5].registrador, variaveis[5].tamanho);
         */
     if(tamanho_pilha%16 != 0) tamanho_pilha+=(16-(tamanho_pilha%16)); //Alinha pilha a 16
+    if(tamanho_pilha != 0)
     printf("subq $%d, %%rsp\n", tamanho_pilha);
     printf("%s", buffer);
 
@@ -178,7 +179,7 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
             printf("je d_if:\n\n");
 
             attr(line, variaveis, parametros);
-            //to do : return
+            //to do : return && arrayget && arrayset
 
             printf("d_if:\n");
 
@@ -186,6 +187,8 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
     }
     else{
           attr(line, variaveis, parametros);
+          //to do : return && arrayget && arrayset
+
     }
   
 }
@@ -197,32 +200,34 @@ return;
 void attr(char * line,  var * variaveis, var * parametros){
 
     int r, s, num1, num2, num3;
-    char op, l1, l2;
+    char op, l, ll;
    
-    r = sscanf(line, "vi%d = %ci%d %c %ci%d", &num1, &l1, &num2, &op, &l2, &num3); 
-           // printf("vi%d = %ci%d %c %ci%d\n", num1, l1, num2, op, l2, num3); 
+    r = sscanf(line, "vi%d = %ci%d %c %ci%d", &num1, &l, &num2, &op, &ll, &num3); 
+           // printf("vi%d = %ci%d %c %ci%d\n", num1, l, num2, op, ll, num3); 
 
-    int n1, f, n2, n3;
-    char l3, l4;
+    int n, f, n1, n2, n3;
+    char l1, l11, l2, l22, l3, l33;
 
-    s = sscanf(line, "vi%d = call f%d %ci%d %ca%d", &n1, &f, &l3, &n2, &l4, &n3);
+    s = sscanf(line, "vi%d = call f%d %c%c%d %c%c%d %c%c%d", &n, &f, &l1, &l11, &n1, &l2, &l22, &n2, &l3, &l33, &n3);
 
-    //<attr> -> <varint> = <varint>
+/*-----------------------------------------------------------------------------------*/
+
+    //<attr> -> <varint> = <valint> (atribuição simples)
     if(r==3){
-        if(l1 == 'c'){
+        if(l == 'c'){
         //    printf("#vi%d = ci%d\n", num1, num2);
             printf("movl $%d, -%d(%%rbp)\n\n", num2, variaveis[num1].tamanho);
             return;
         }
-        if(l1 == 'v'){
+        if(l == 'v'){
          //   printf("#vi%d = vi%d\n", num1, num2);
             printf("movl -%d(%%rbp), %%eax\n", variaveis[num2].tamanho);
             printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho);
             return;
         }
-        if(l1 == 'p'){
+        if(l == 'p'){
           //  printf("#vi%d = pi%d\n", num1, num2);
-            printf("movq %s, -%d(%%rbp)\n", parametros[num2].registrador, parametros[num2].tamanho);   
+            printf("movl %s, -%d(%%rbp)\n", parametros[num2].registrador, parametros[num2].tamanho);   
             printf("movl -%d(%%rbp), %%eax\n", parametros[num2].tamanho);
             printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho);  
         
@@ -230,30 +235,32 @@ void attr(char * line,  var * variaveis, var * parametros){
         }
     }
    
-    //<attr> -> <varint> = <oper>
+/*-----------------------------------------------------------------------------------*/
+
+    //<attr> -> <varint> = <oper> (Atribuiçao por expressão)
     if(r==6){ 
 
-        //printf("vi%d = %ci%d %c %ci%d\n", num1, l1, num2, op, l2, num3); 
+        //printf("vi%d = %ci%d %c %ci%d\n", num1, l, num2, op, ll, num3); 
 
         //Primeira parte da expressao em %eax
-        if(l1 == 'v'){
+        if(l == 'v'){
             printf("movl -%d(%%rbp), %%eax\n", variaveis[num2].tamanho);
         }
-        else if(l1 == 'c'){
+        else if(l == 'c'){
             printf("movl $%d, %%eax\n", num2);  
         }
-        else if(l1 == 'p'){
+        else if(l == 'p'){
             printf("movl %s, %%eax\n", parametros[num2].registrador);
         }
 
         //Segunda parte da expressao em %ecx
-        if(l2 == 'v'){
+        if(ll == 'v'){
             printf("movl -%d(%%rbp), %%ecx\n", variaveis[num3].tamanho);
         }
-        else if(l2 == 'c'){
+        else if(ll == 'c'){
             printf("movl $%d, %%ecx\n", num3);  
         }
-        else if(l2 == 'p'){ //pi alw
+        else if(ll == 'p'){ //pi alw
             printf("movl %s, %%ecx\n", parametros[num3].registrador);
         }
 
@@ -268,30 +275,98 @@ void attr(char * line,  var * variaveis, var * parametros){
             printf("idivl %%ecx\n");
           } 
           
-        //varint = exp
+        //<varint> = <exp>
         printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[num1].tamanho); 
         return;
     }
 
+/*-----------------------------------------------------------------------------------*/
+
     //<attr> -> <varint> = <call>
-    if(s==6){
 
-        int tmp, tmp1;
-
-        if(l3 == 'c')
-            printf("movl $%d, %%edi\n", n2);
-
-        else if (l3 == 'v' || l3 == 'p'){
-            tmp = ( 13 =='p') ? parametros[n2].tamanho : variaveis[n2].tamanho;
-            printf("movl -%d(%%rbp), %%edi\n", tmp);
-        }
-            tmp1 = ( 14 =='p') ? parametros[n3].tamanho : variaveis[n3].tamanho;
-       
-        printf("movq -%d(%%rbp), %%rsi\n", tmp1);
+    if(s==2){ // chamada de função com 0 parâmetros 
+      //  printf("#vi%d = f%d\n", n, f);
         printf("call f%d\n", f);
-        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[n1].tamanho);  
-
+        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[n].tamanho);  
         return;
     }
+
+    if(s > 4 || s < 12){ // chamada de função com 1 parâmetros a 3 parâmetros
+        
+        int tmp1, tmp2, tmp3;
+
+        if(l1=='v' || l1 =='p' || l1 =='c'){ //Primeiro parâmetro
+            if(l1 =='c')
+            printf("movl $%d, %%edi\n", n1); 
+            if(l11=='i' && l1 != 'c'){
+            tmp1 = ( l1 =='p') ? parametros[n1].tamanho : variaveis[n1].tamanho;
+            printf("movl -%d(%%rbp), %%edi\n", tmp1);
+            }
+            if(l11=='a'){
+                if(l1=='p')
+                printf("movq -%d(%%rbp), %%rdi\n", parametros[n1].tamanho);
+                if(l1=='v'){
+                printf("leaq -%d(%%rbp), %%rdi\n", variaveis[n1].tamanho);
+                }
+            }
+
+        }
+
+        if(s==5){ //Finaliza a função caso tenha 1 parâmetro
+        printf("call f%d\n", f);
+        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[n].tamanho); 
+        return;
+        }
+
+        if(l2=='v' || l2 =='p' || l2 =='c'){//Segundo parâmetro
+            if(l2== 'c'){
+            printf("movl $%d, %%esi\n", n2);   
+            }
+            if(l22=='i' && l1 != 'c'){
+            tmp2 = ( l2 =='p') ? parametros[n2].tamanho : variaveis[n2].tamanho;
+            printf("movl -%d(%%rbp), %%esi\n", tmp2);
+            }
+            if(l22=='a'){
+                if(l2=='p')
+                printf("movq -%d(%%rbp), %%rsi\n", parametros[n2].tamanho);
+                if(l2=='v'){
+                printf("leaq -%d(%%rbp), %%rsi\n", variaveis[n2].tamanho);
+                }
+            }
+        }
+
+        if(s==8){//Finaliza a função caso tenha 2 parâmetros
+        printf("call f%d\n", f);
+        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[n].tamanho); 
+        return;
+        }
+
+        if(l3=='v' || l3 =='p' || l3=='c'){//Terceiro parâmetro
+            if(l3== 'c'){
+            printf("movl $%d, %%edx\n", n3);   
+            }
+            if(l33=='i' && l1 != 'c'){
+            tmp3 = ( l3 =='p') ? parametros[n3].tamanho : variaveis[n3].tamanho;
+            printf("movl -%d(%%rbp), %%edx\n", tmp3);
+            }
+            if(l3=='a'){
+                if(l3=='p')
+                printf("movq -%d(%%rbp), %%rdx\n", parametros[n3].tamanho);
+                if(l3=='v'){
+                printf("leaq -%d(%%rbp), %%rdx\n", variaveis[n3].tamanho);
+                }
+            }
+        }
+
+        if(s==11){ //Finaliza a função caso tenha 3 parâmetro
+        printf("call f%d\n", f);
+        printf("movl %%eax, -%d(%%rbp)\n\n", variaveis[n].tamanho); 
+        return;
+        }
+     
+    }
+
+/*-----------------------------------------------------------------------------------*/
+
 
 }
