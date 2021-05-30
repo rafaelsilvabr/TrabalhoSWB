@@ -16,7 +16,6 @@ typedef struct{
     }var;
 
 int main(){
-    int i;
     char line[MAX];
     char *word;
     printf("# Tradução BPL to Assembly\n\n");
@@ -35,8 +34,6 @@ int main(){
 /*---------------------------------------------------------*/
 
 void traduzirfuncao(char *word){
-
-    char buffer[MAX];
     //Inicializa a pilha da função
 
     //Nome da Função
@@ -58,9 +55,7 @@ void traduzirfuncao(char *word){
         [3].tipo=0
     };
 
-    while(word != NULL){
-        char tipoParam, numParam;
-       // printf("||p%c%d||\n",word[1],word[2]-48);
+    while(word != NULL){ //Salva tipo do parametro na struct (array or int)
         parametros[word[2]-48].tipo = word[1];
         word = strtok(NULL," ");
     }
@@ -106,7 +101,7 @@ void traduzirfuncao(char *word){
     }
    
     //Aumenta Pilha da Função
-    int tamanho_pilha = 0; char tmp[10];
+    int tamanho_pilha = 0;
     for(int i=1; i<=3; i++){ //Verifica PARAMETROS Declarados Na função p/alocar na pilha
         if(parametros[i].tipo!=0){
             tamanho_pilha+=parametros[i].tamanho; //incrementa tamanho do parametro no tamanho da pilha
@@ -119,24 +114,9 @@ void traduzirfuncao(char *word){
             variaveis[i].tamanho=tamanho_pilha;
         }
     }
-         //Debug Parametros
-        /*
-        printf("%c / %s / %d\n",parametros[1].tipo, parametros[1].registrador, parametros[1].tamanho);
-        printf("%c / %s / %d\n",parametros[2].tipo, parametros[2].registrador, parametros[2].tamanho);
-        printf("%c / %s / %d\n",parametros[3].tipo, parametros[3].registrador, parametros[3].tamanho);
-        */
 
-         //Debug Variaveis Locais
-        /*
-        printf("%c / %s / %d\n",variaveis[1].tipo, variaveis[1].registrador, variaveis[1].tamanho);
-        printf("%c / %s / %d\n",variaveis[2].tipo, variaveis[2].registrador, variaveis[2].tamanho);
-        printf("%c / %s / %d\n",variaveis[3].tipo, variaveis[3].registrador, variaveis[3].tamanho);
-        printf("%c / %s / %d\n",variaveis[4].tipo, variaveis[4].registrador, variaveis[4].tamanho);
-        printf("%c / %s / %d\n",variaveis[5].tipo, variaveis[5].registrador, variaveis[5].tamanho);
-        */
     if(tamanho_pilha%16 != 0) tamanho_pilha+=(16-(tamanho_pilha%16)); //Alinha pilha a 16
-    if(tamanho_pilha != 0)
-    printf("subq $%d, %%rsp\n", tamanho_pilha);
+    if(tamanho_pilha != 0) printf("subq $%d, %%rsp\n", tamanho_pilha);
 
 /*---------------------------------------------------------*/
 
@@ -352,15 +332,13 @@ void attr(char * line,  var * variaveis, var * parametros){
      
     }
 
-
-
 /*-----------------------------------------------------------------------------------*/
     char g, arr, ret;
     int arrN, ciN, varN;
 
     g = sscanf(line, "%cet %ca%d index ci%d to vi%d", &g, &arr, &arrN, &ciN, &varN); 
     
-    if(g==5){ //GET
+    if(g==5){ // <arrayget> → 'get' <array> 'index' <const> 'to' <varint>
         if(arr=='p') acessArray(ciN,parametros[arrN]);
         if(arr=='v') acessArray(ciN,variaveis[arrN]);
         printf("movl (%%rax), %%ecx\n");
@@ -369,7 +347,7 @@ void attr(char * line,  var * variaveis, var * parametros){
     
     s = sscanf(line, "%cet %ca%d index ci%d with %ci%d", &g, &arr, &arrN, &ciN, &ret, &varN);
 
-    if(s==6){ //SET
+    if(s==6){ // <arrayset> → 'set' <array> 'index' <const> 'with' <valint>
         if(arr=='p') acessArray(ciN,parametros[arrN]);
         if(arr=='v') acessArray(ciN,variaveis[arrN]);
 
@@ -385,8 +363,6 @@ void attr(char * line,  var * variaveis, var * parametros){
 
         printf("movl %%ecx, (%%rax)\n\n");
     }
-
-
 
 /*-----------------------------------------------------------------------------------*/
     int rtn;
