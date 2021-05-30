@@ -6,6 +6,7 @@
 
 void traduzirfuncao();
 void attr();
+void acessArray();
 
 typedef struct{
     char tipo;
@@ -16,11 +17,10 @@ typedef struct{
 
 int main(){
     int i;
-    char line[255];
+    char line[MAX];
     char *word;
     printf("# Tradução BPL to Assembly\n\n");
     while(scanf("%[^\n]\n", line) != EOF){ //Le linhas
-     // printf("%s\n",line);
         word = strtok(line," ");          //Quebra a linha em palavras p/ num1entificar 
         while(word!=NULL){
             if(strcmp(word,"function")==0){
@@ -31,6 +31,8 @@ int main(){
     }
     return 0;
 }
+
+/*---------------------------------------------------------*/
 
 void traduzirfuncao(char *word){
 
@@ -105,34 +107,16 @@ void traduzirfuncao(char *word){
    
     //Aumenta Pilha da Função
     int tamanho_pilha = 0; char tmp[10];
-    strcpy(buffer,"\n");
     for(int i=1; i<=3; i++){ //Verifica PARAMETROS Declarados Na função p/alocar na pilha
         if(parametros[i].tipo!=0){
-          // 
-         // parametros[i].tamanho+=8; 
-          tamanho_pilha+=parametros[i].tamanho;
-        parametros[i].tamanho=tamanho_pilha;
-            /*
-            strcat(buffer,"movq ");
-            strcat(buffer,parametros[i].registrador);
-            strcat(buffer,", -");
-            sprintf(tmp,"%d",tamanho_pilha);
-            strcat(buffer,tmp);
-            strcat(buffer,"(%rsp)\n");*/
+            tamanho_pilha+=parametros[i].tamanho; //incrementa tamanho do parametro no tamanho da pilha
+            parametros[i].tamanho=tamanho_pilha; //aloca parametro na pilha
         }
     }
     for(int i=1; i<=5; i++){
         if(variaveis[i].tipo!=0){ //Verifica VARIAVEIS Declarados Na função p/alocar na pilha
-        //   printf("tamanho da pilha= %d\n", tamanho_pilha);
-           //  
             tamanho_pilha+=variaveis[i].tamanho; 
-            variaveis[i].tamanho=tamanho_pilha;/*
-           strcat(buffer,"movq ");
-            strcat(buffer,variaveis[i].registrador);
-            strcat(buffer,", -");
-            sprintf(tmp,"%d",tamanho_pilha);
-            strcat(buffer,tmp);
-            strcat(buffer,"(%rsp)\n");*/
+            variaveis[i].tamanho=tamanho_pilha;
         }
     }
          //Debug Parametros
@@ -142,7 +126,6 @@ void traduzirfuncao(char *word){
         printf("%c / %s / %d\n",parametros[3].tipo, parametros[3].registrador, parametros[3].tamanho);
         */
 
-        
          //Debug Variaveis Locais
         /*
         printf("%c / %s / %d\n",variaveis[1].tipo, variaveis[1].registrador, variaveis[1].tamanho);
@@ -154,13 +137,13 @@ void traduzirfuncao(char *word){
     if(tamanho_pilha%16 != 0) tamanho_pilha+=(16-(tamanho_pilha%16)); //Alinha pilha a 16
     if(tamanho_pilha != 0)
     printf("subq $%d, %%rsp\n", tamanho_pilha);
-    printf("%s", buffer);
 
 /*---------------------------------------------------------*/
 
 //Corpo da Função
 
 //Atribuição
+int n_if=0;
 while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
   
     int r, num;
@@ -169,6 +152,7 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
     r = sscanf(line, "if %ci%d", &l, &num); 
 
     if(r==2){
+        n_if++;
       //  printf("#if %ci%d\n", l, num);
         while(scanf("%[^\n]\n", line), strcmp(line,"endif")!=0){
            int tmp;
@@ -176,13 +160,12 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
 
             printf("movl -%d(%%rbp), %%ecx\n", tmp);
             printf("cmpl $0, %%ecx\n");
-            printf("je d_if:\n\n");
+            printf("je d_if%d\n\n",n_if);
 
             attr(line, variaveis, parametros);
             //to do : return && arrayget && arrayset
 
-            printf("d_if:\n");
-
+            printf("d_if%d:\n",n_if);
         }
     }
     else{
@@ -190,8 +173,11 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
           //to do : return && arrayget && arrayset
 
     }
-  
+    
 }
+//end
+printf("end_func:\n");
+printf("leave\nret\n");
 
 return;
 //Finaliza Função
@@ -366,7 +352,68 @@ void attr(char * line,  var * variaveis, var * parametros){
      
     }
 
+
+
 /*-----------------------------------------------------------------------------------*/
+    char g, arr, ret;
+    int arrN, ciN, varN;
+
+    g = sscanf(line, "%cet %ca%d index ci%d to vi%d", &g, &arr, &arrN, &ciN, &varN); 
+    
+    if(g==5){ //GET
+        if(arr=='p') acessArray(ciN,parametros[arrN]);
+        if(arr=='v') acessArray(ciN,variaveis[arrN]);
+        printf("movl (%%rax), %%ecx\n");
+        printf("movl %%ecx, -%d(%%rbp)\n\n", variaveis[varN].tamanho);
+    }
+    
+    s = sscanf(line, "%cet %ca%d index ci%d with %ci%d", &g, &arr, &arrN, &ciN, &ret, &varN);
+
+    if(s==6){ //SET
+        if(arr=='p') acessArray(ciN,parametros[arrN]);
+        if(arr=='v') acessArray(ciN,variaveis[arrN]);
+
+        if(ret == 'p'){
+            printf("movl -%d(%%rbp), %%ecx\n", parametros[varN].tamanho);
+        }
+        if(ret == 'v'){
+            printf("movl -%d(%%rbp), %%ecx\n", variaveis[varN].tamanho);
+        }
+        if(ret == 'c'){
+            printf("movl $%d, %%ecx\n", varN);
+        }
+
+        printf("movl %%ecx, (%%rax)\n\n");
+    }
 
 
+
+/*-----------------------------------------------------------------------------------*/
+    int rtn;
+    char str;
+    rtn = sscanf(line, "%ceturn %ci%d",&str, &ret, &varN);
+    if(rtn==3){
+        printf("movl ");
+        if(ret == 'p'){
+            printf("-%d(%%rbp), %%eax\n", parametros[varN].tamanho);
+        }
+        if(ret=='v'){
+            printf("-%d(%%rbp), %%eax\n", variaveis[varN].tamanho);
+        }
+        if(ret=='c'){
+            printf("$%d, %%eax\n", varN);
+        }
+        printf("jmp end_func\n\n");
+    }
+    if(str=='r' && rtn!=3){
+        printf("jmp end_func\n\n");
+    }
+
+}
+
+void acessArray(int index, var array){
+    printf("movq $%d, %%rax\n", index);
+    printf("imulq $4, %%rax\n");
+    printf("leaq -%d(%%rbp), %%rcx\n", array.tamanho);
+    printf("addq %%rcx, %%rax\n");
 }
