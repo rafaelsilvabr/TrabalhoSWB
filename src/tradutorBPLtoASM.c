@@ -136,7 +136,7 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
       //  printf("#if %ci%d\n", l, num);
         while(scanf("%[^\n]\n", line), strcmp(line,"endif")!=0){
            int tmp;
-           tmp = ( 1=='p') ? parametros[num].tamanho : variaveis[num].tamanho;
+           tmp = ( l=='p') ? parametros[num].tamanho : variaveis[num].tamanho;
 
             printf("movl -%d(%%rbp), %%ecx\n", tmp);
             printf("cmpl $0, %%ecx\n");
@@ -224,7 +224,7 @@ void attr(char * line,  var * variaveis, var * parametros){
         else if(ll == 'c'){
             printf("movl $%d, %%ecx\n", num3);  
         }
-        else if(ll == 'p'){ //pi alw
+        else if(ll == 'p'){
             printf("movl %s, %%ecx\n", parametros[num3].registrador);
         }
 
@@ -255,7 +255,7 @@ void attr(char * line,  var * variaveis, var * parametros){
         return;
     }
 
-    if(s > 4 || s < 12){ // chamada de função com 1 parâmetros a 3 parâmetros
+    if(s > 4 && s < 12){ // chamada de função com 1 parâmetros a 3 parâmetros
         
         int tmp1, tmp2, tmp3;
 
@@ -286,7 +286,7 @@ void attr(char * line,  var * variaveis, var * parametros){
             if(l2== 'c'){
             printf("movl $%d, %%esi\n", n2);   
             }
-            if(l22=='i' && l1 != 'c'){
+            if(l22=='i' && l2 != 'c'){
             tmp2 = ( l2 =='p') ? parametros[n2].tamanho : variaveis[n2].tamanho;
             printf("movl -%d(%%rbp), %%esi\n", tmp2);
             }
@@ -309,11 +309,11 @@ void attr(char * line,  var * variaveis, var * parametros){
             if(l3== 'c'){
             printf("movl $%d, %%edx\n", n3);   
             }
-            if(l33=='i' && l1 != 'c'){
+            if(l33=='i' && l3 != 'c'){
             tmp3 = ( l3 =='p') ? parametros[n3].tamanho : variaveis[n3].tamanho;
             printf("movl -%d(%%rbp), %%edx\n", tmp3);
             }
-            if(l3=='a'){
+            if(l33=='a'){
                 if(l3=='p')
                 printf("movq -%d(%%rbp), %%rdx\n", parametros[n3].tamanho);
                 if(l3=='v'){
