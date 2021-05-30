@@ -143,14 +143,12 @@ while(scanf("%[^\n]\n", line), strcmp(line,"end")!=0){
             printf("je d_if%d\n\n",n_if);
 
             attr(line, variaveis, parametros);
-            //to do : return && arrayget && arrayset
 
             printf("d_if%d:\n",n_if);
         }
     }
     else{
           attr(line, variaveis, parametros);
-          //to do : return && arrayget && arrayset
 
     }
     
